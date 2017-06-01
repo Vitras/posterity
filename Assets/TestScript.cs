@@ -5,14 +5,13 @@ using System.Collections;
 public class TestScript : MonoBehaviour {
 
 	public OrientationLogger logger;
-	public Text text;
-
 	public float interval = 0.5f;
 	public float lastCheck = 0;
 
-	public float lowerVisibleBound = 30;
+    public GradualNotifier gradualNotifier;
+    public InstantNotifier instantNotifier;
 
-    public Notifier notifier;
+    private Notifier notifier;
 
 	// Use this for initialization
 	public void Start () {
@@ -20,14 +19,17 @@ public class TestScript : MonoBehaviour {
 		{
             switch(OrientationLogger.dataType)
             {
-                case "discrete":
-                    notifier = gameObject.AddComponent<DiscreteNotifier>();
+                case "gradual":
+                    notifier = gradualNotifier;
+                    Destroy(instantNotifier);
                     break;
-                case "non_discrete":
+                case "instant":
                 default:
-                    notifier = gameObject.AddComponent<NonDiscreteNotifier>();
+                    notifier = instantNotifier;
+                    Destroy(gradualNotifier);
                     break;
             }
+            notifier.enabled = true;
             logger.StartLogging();
 		}
 	}
@@ -35,24 +37,20 @@ public class TestScript : MonoBehaviour {
     // Update is called once per frame
     public void Update()
     {
-        if (Time.time - lastCheck >= interval && text != null && logger != null)
-        {
-            float c = 1f - (Mathf.Clamp(OrientationLogger.CurrentOrientation() - lowerVisibleBound, 0f, 90f - lowerVisibleBound) / (90f - lowerVisibleBound));
-            text.color = new Color(c, c, c, 1f);
-            lastCheck = Time.time;
-        }
         if (notifier != null)
         {
-            notifier.Check(OrientationLogger.CurrentOrientation());
+            notifier.Check(OrientationLogger.CurrentOrientation(false));
         }
     }
 
 	public void DoneReading()
 	{
 		logger.StopLogging();
-        if (Application.loadedLevelName == "TestScene")
-            Application.LoadLevel("IntermissionScene");
-        else
-            Application.LoadLevel("FinishedScene");
+        Application.LoadLevel("IntermissionScene");
+	}
+	public void DoneWriting()
+	{
+		logger.StopLogging();
+        Application.LoadLevel("FinishedScene");
 	}
 }
